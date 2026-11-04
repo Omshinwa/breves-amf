@@ -1,5 +1,25 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Difficultés du jeu de données
+
+Flux AMF de info-financiere.gouv.fr, importé dans `scripts/import.ts`.
+
+- **Dates de marché fausses :** `uin_dat_mar` peut valoir 8888, 9999 ou une mauvaise année, on revient alors à `uin_dat_amf`.
+- **Décalage horaire :** les dates du 26 au 30/10/2026 sont 1 h trop tôt et ne sont pas corrigées.
+- **Valeurs factices :** l'ISIN `999999999999` et le ticker `99999999` signifient « absent ».
+- **Format variable :** `informationdeposee_inf_stp_inf` contient une chaîne simple pour un code et une chaîne JSON pour plusieurs.
+- **CAC 40 incomplet :** `cac40` vide signifie « inconnu », pas « hors CAC 40 ».
+- **LEI manquant :** sur certaines lignes, la société est identifiée par l'ISIN, puis par son nom.
+- **Aucun lien FR/EN :** `group_id` est reconstruit à partir de la société, du `type_code` et de l'écart de temps.
+- **Écart FR/EN variable :** les deux versions sont souvent simultanées, mais l'écart dépasse parfois 2 h, d'où la fenêtre de 3 h.
+- **Fausse paire possible :** sur 6 mois, la fenêtre de 3 h ajoute 21 paires, dont une fausse (Segro).
+- **Titres génériques :** « Informations privilégiées / Autres communiqués » ne décrit pas le contenu, il faut ouvrir le PDF.
+- **`type_code` imprécis :** une déclaration de droits de vote peut être classée en communiqué général (`001006`, Advicenne).
+- **Publications simultanées :** deux documents sans rapport peuvent avoir la même société, le même type et la même heure (Advicenne), le tri par `id` les départage alors sans garantie.
+- **Dépôts en double :** un même document peut exister sous deux `id` (Kaufman & Broad, Streamwide), ils ne sont pas dédoublonnés pour l'instant.
+- **Langue déclarée peu fiable :** une « version EN » peut être le même fichier que la version FR (Crossject, ZCCM).
+- **Fichiers non PDF :** `url_de_recuperation` peut pointer vers un `.docx` (Arkéa).
+
 ## Getting Started
 
 First, run the development server:

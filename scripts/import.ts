@@ -10,7 +10,7 @@ const BATCH_SIZE = 500;
 const NO_ISIN = "999999999999";
 const NO_TICKER = "99999999";
 const MAX_MARKET_GAP_MS = 300 * 24 * 60 * 60 * 1000;
-const MAX_GROUP_GAP_MS = 15 * 60 * 1000; // Relie chaque version EN à la version FR la plus proche : même société, même type_code, moins de 15 minutes d'écart
+const MAX_GROUP_GAP_MS = 3 * 60 * 60 * 1000; // Relie chaque version EN à la version FR la plus proche : même société, même type_code, moins de 3 heures d'écart
 const LANGS: Record<string, string> = { Français: "fr", Anglais: "en" };
 
 type ApiRow = {
@@ -110,7 +110,7 @@ function clean(row: ApiRow): Publication {
 }
 
 // Relie chaque version EN à la version FR la plus proche : même société, même
-// type_code, moins de 15 minutes d'écart. Les paires les plus proches passent
+// type_code, moins de 3 heures d'écart. Les paires les plus proches passent
 // en premier, une ligne ne peut donc appartenir qu'à une seule paire.
 function groupTranslations(publications: Publication[]): void {
   const bySource = new Map<string, Publication[]>();
