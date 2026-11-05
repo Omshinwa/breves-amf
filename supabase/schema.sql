@@ -14,7 +14,7 @@ create table publications (
   lang          text,                          -- 'fr' / 'en'
   status        text,                          -- informationdeposee_inf_upg_inf_inf_upg_sts
   pdf_url       text unique,                   -- url_de_recuperation
-  group_id      text,                          -- regroupement FR / EN, calculé à l'import
+  group_id      text,                          -- regroupement FR / EN et dépôts en double, calculé à l'import
   raw           jsonb not null,                -- la ligne API complète
   ingested_at   timestamptz not null default now()
 );

@@ -11,7 +11,15 @@ const NO_ISIN = "999999999999";
 const NO_TICKER = "99999999";
 const MAX_MARKET_GAP_MS = 300 * 24 * 60 * 60 * 1000;
 const MAX_GROUP_GAP_MS = 3 * 60 * 60 * 1000; // Relie chaque version EN à la version FR la plus proche : même société, même type_code, moins de 3 heures d'écart
+const MAX_DUPLICATE_GAP_MS = 5 * 60 * 1000;
+const MIN_DUPLICATE_SIMILARITY = 0.7;
 const LANGS: Record<string, string> = { Français: "fr", Anglais: "en" };
+
+// Ces titres décrivent une catégorie, pas le document : ils ne prouvent aucun doublon.
+const GENERIC_TITLE =
+  /^(informations privilegiees|inside information|information financiere trimestrielle|quarterly financial|total du nombre|total number|acquisition ou cession|acquisition or disposal|rapports financiers et d'audit|half yearly|modalites de mise a disposition|terms of availability|franchissement|declaration d'intention)/;
+const MONTH =
+  /^(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|january|february|march|april|may|june|july|august|september|october|november|december)$/;
 
 type ApiRow = {
   uin_idt_uin: string;
@@ -109,14 +117,17 @@ function clean(row: ApiRow): Publication {
   };
 }
 
+function companyKey(publication: Publication): string {
+  return publication.lei ?? publication.isin ?? publication.company;
+}
+
 // Relie chaque version EN à la version FR la plus proche : même société, même
 // type_code, moins de 3 heures d'écart. Les paires les plus proches passent
 // en premier, une ligne ne peut donc appartenir qu'à une seule paire.
 function groupTranslations(publications: Publication[]): void {
   const bySource = new Map<string, Publication[]>();
   for (const publication of publications) {
-    const company = publication.lei ?? publication.isin ?? publication.company;
-    const key = `${company}|${publication.type_code}`;
+    const key = `${companyKey(publication)}|${publication.type_code}`;
     bySource.set(key, [...(bySource.get(key) ?? []), publication]);
   }
 
@@ -148,6 +159,91 @@ function groupTranslations(publications: Publication[]): void {
   }
 }
 
+function normalize(text: string | null): string {
+  return (text ?? "")
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+// Sans le nom de la société : certains dépôts le mettent en tête du titre, d'autres non.
+function titleWords(publication: Publication): string[] {
+  let title = normalize(publication.title);
+  for (const word of normalize(publication.company).split(/\W+/)) {
+    if (word.length > 3) title = title.replaceAll(word, " ");
+  }
+  return title.match(/[a-z0-9]+/g) ?? [];
+}
+
+function titleSimilarity(a: string[], b: string[]): number {
+  const wordsA = new Set(a);
+  const wordsB = new Set(b);
+  const shared = [...wordsA].filter((word) => wordsB.has(word)).length;
+  return shared / Math.max(1, wordsA.size + wordsB.size - shared);
+}
+
+// Un ISIN ou un mois suffit à distinguer deux documents aux titres presque identiques.
+function titleMarkers(words: string[]): string {
+  return words
+    .filter((word) => /\d/.test(word) || MONTH.test(word))
+    .sort()
+    .join(" ");
+}
+
+function isGenericTitle(publication: Publication): boolean {
+  return GENERIC_TITLE.test(normalize(publication.title));
+}
+
+function isDuplicate(a: Publication, b: Publication): boolean {
+  const gap = Math.abs(Date.parse(a.published_at) - Date.parse(b.published_at));
+  if (gap > MAX_DUPLICATE_GAP_MS || isGenericTitle(a) || isGenericTitle(b)) {
+    return false;
+  }
+
+  const wordsA = titleWords(a);
+  const wordsB = titleWords(b);
+  return (
+    titleSimilarity(wordsA, wordsB) >= MIN_DUPLICATE_SIMILARITY &&
+    titleMarkers(wordsA) === titleMarkers(wordsB)
+  );
+}
+
+// Un même document peut être déposé deux fois sous deux id : même société, même
+// langue, même type_code, moins de 5 minutes d'écart et titres proches. Les deux
+// lignes rejoignent le même groupe, rien n'est perdu si la règle se trompe.
+function groupDuplicates(publications: Publication[]): void {
+  const byId = new Map(publications.map((p) => [p.id, p]));
+  const bySource = new Map<string, Publication[]>();
+  for (const publication of publications) {
+    const key = `${companyKey(publication)}|${publication.lang}|${publication.type_code}`;
+    bySource.set(key, [...(bySource.get(key) ?? []), publication]);
+  }
+
+  for (const candidates of bySource.values()) {
+    for (const [i, a] of candidates.entries()) {
+      for (const b of candidates.slice(i + 1)) {
+        if (a.group_id === b.group_id || !isDuplicate(a, b)) continue;
+
+        // L'application affiche la ligne dont l'id vaut group_id : on garde la
+        // version française s'il y en a une, et le tri sur les id reste stable.
+        const [kept, replaced] = [
+          byId.get(a.group_id)!,
+          byId.get(b.group_id)!,
+        ].sort(
+          (x, y) =>
+            Number(y.lang === "fr") - Number(x.lang === "fr") ||
+            x.id.localeCompare(y.id),
+        );
+        for (const publication of publications) {
+          if (publication.group_id === replaced.id) {
+            publication.group_id = kept.id;
+          }
+        }
+      }
+    }
+  }
+}
+
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
@@ -161,6 +257,7 @@ async function main() {
   const rows = await fetchRows();
   const publications = rows.map(clean);
   groupTranslations(publications);
+  groupDuplicates(publications);
 
   for (let i = 0; i < publications.length; i += BATCH_SIZE) {
     const { error } = await supabase

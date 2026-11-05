@@ -16,7 +16,7 @@ Flux AMF de info-financiere.gouv.fr, importé dans `scripts/import.ts`.
 - **Titres génériques :** « Informations privilégiées / Autres communiqués » ne décrit pas le contenu, il faut ouvrir le PDF.
 - **`type_code` imprécis :** une déclaration de droits de vote peut être classée en communiqué général (`001006`, Advicenne).
 - **Publications simultanées :** deux documents sans rapport peuvent avoir la même société, le même type et la même heure (Advicenne), le tri par `id` les départage alors sans garantie.
-- **Dépôts en double :** un même document peut exister sous deux `id` (Kaufman & Broad, Streamwide), ils ne sont pas dédoublonnés pour l'instant.
+- **Dépôts en double :** un même document peut exister sous deux `id` (Kaufman & Broad, Streamwide), ils partagent donc le même `group_id` si leurs titres et leurs heures sont proches, sans contrôle du contenu.
 - **Langue déclarée peu fiable :** une « version EN » peut être le même fichier que la version FR (Crossject, ZCCM).
 - **Fichiers non PDF :** `url_de_recuperation` peut pointer vers un `.docx` (Arkéa).
 
