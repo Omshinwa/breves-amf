@@ -27,3 +27,33 @@ create index on publications (group_id);
 alter table publications enable row level security;
 create policy "lecture publique" on publications
   for select to anon using (true);
+
+-- Texte des documents utiles à la sélection : titres génériques et annonces les
+-- mieux notées. text reste vide si le document n'a pas pu être lu.
+create table publication_texts (
+  publication_id  text primary key references publications (id) on delete cascade,
+  text            text,
+  head            text,                          -- début du document, remplace un titre générique
+  figure_count    integer not null default 0,    -- départage les notes égales
+  error           text,                          -- motif si le texte est inexploitable
+  extracted_at    timestamptz not null default now()
+);
+
+alter table publication_texts enable row level security;
+create policy "lecture publique" on publication_texts
+  for select to anon using (true);
+
+-- Brèves générées par scripts/generate-briefs.ts. Le lien vers le document vient
+-- de publications.pdf_url, pas du LLM.
+create table briefs (
+  publication_id  text primary key references publications (id) on delete cascade,
+  title           text not null,
+  body            text not null,
+  figures         jsonb not null default '[]',   -- [{ label, value }], repris de body
+  model           text not null,                 -- le modèle qui a répondu, repli compris
+  generated_at    timestamptz not null default now()
+);
+
+alter table briefs enable row level security;
+create policy "lecture publique" on briefs
+  for select to anon using (true);

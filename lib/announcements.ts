@@ -1,26 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 import { cacheLife } from "next/cache";
+import type { Brief } from "./brief";
+import { isCac40 } from "./cac40";
 import { parisDay } from "./dates";
 import { infoTypeOf, type InfoTypeId } from "./info-types";
-
-const PAGE_SIZE = 1000; // Limite par défaut d'une réponse Supabase
-const COLUMNS =
-  "id, published_at, company, isin, ticker, is_cac40, title, type_code, subtype, lang, pdf_url, group_id";
-
-type PublicationRow = {
-  id: string;
-  published_at: string;
-  company: string;
-  isin: string | null;
-  ticker: string | null;
-  is_cac40: boolean | null;
-  title: string | null;
-  type_code: string | null;
-  subtype: string | null;
-  lang: string | null;
-  pdf_url: string | null;
-  group_id: string;
-};
+import {
+  evaluatePublication,
+  fetchPublications,
+  type PublicationRow,
+} from "./publications";
+import type { Evaluation } from "./selection";
 
 export type AnnouncementDocument = { lang: string; url: string };
 
@@ -36,6 +25,10 @@ export type Announcement = {
   title: string;
   type: InfoTypeId;
   documents: AnnouncementDocument[];
+  evaluation: Evaluation;
+  figureCount: number;
+  textError: string | null;
+  brief: Brief | null;
 };
 
 // Une annonce = un group_id. La ligne dont l'id vaut group_id est la version
@@ -55,7 +48,7 @@ function toAnnouncements(rows: PublicationRow[]): Announcement[] {
       company: row.company,
       ticker: row.ticker,
       isin: row.isin,
-      isCac40: row.is_cac40 === true,
+      isCac40: isCac40(row.isin),
       isInsideInformation: row.subtype === "Informations privilégiées",
       title: row.title ?? "Sans titre",
       type: infoTypeOf(row.type_code),
@@ -65,6 +58,10 @@ function toAnnouncements(rows: PublicationRow[]): Announcement[] {
           lang: version.lang ?? "?",
           url: version.pdf_url!,
         })),
+      evaluation: evaluatePublication(row),
+      figureCount: row.publication_texts?.figure_count ?? 0,
+      textError: row.publication_texts?.error ?? null,
+      brief: row.briefs,
     }));
 }
 
@@ -79,19 +76,5 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     { auth: { persistSession: false } },
   );
 
-  const rows: PublicationRow[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from("publications")
-      .select(COLUMNS)
-      .order("published_at", { ascending: false })
-      .order("id")
-      .range(from, from + PAGE_SIZE - 1)
-      .overrideTypes<PublicationRow[], { merge: false }>();
-    if (error) {
-      throw new Error(`Supabase : ${error.message}`);
-    }
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) return toAnnouncements(rows);
-  }
+  return toAnnouncements(await fetchPublications(supabase));
 }

@@ -1,11 +1,13 @@
 import type { Announcement } from "./announcements";
 import { INFO_TYPES } from "./info-types";
+import { WORTH_ARTICLE_SCORE } from "./selection";
 
 export type Filters = {
   company?: string;
   type?: string;
   from?: string;
   to?: string;
+  worth?: string;
 };
 
 export type Facet = {
@@ -36,6 +38,7 @@ export function parseFilters(params: SearchParams): Filters {
     type: INFO_TYPES.some(({ id }) => id === type) ? type : undefined,
     from: day(params.from),
     to: day(params.to),
+    worth: params.worth === "1" ? "1" : undefined,
   };
 }
 
@@ -54,14 +57,15 @@ export function hasFilters(filters: Filters): boolean {
 
 export function applyFilters(
   announcements: Announcement[],
-  { company, type, from, to }: Filters,
+  { company, type, from, to, worth }: Filters,
 ): Announcement[] {
   return announcements.filter(
     (announcement) =>
       (!company || announcement.company === company) &&
       (!type || announcement.type === type) &&
       (!from || announcement.day >= from) &&
-      (!to || announcement.day <= to),
+      (!to || announcement.day <= to) &&
+      (!worth || announcement.evaluation.score >= WORTH_ARTICLE_SCORE),
   );
 }
 

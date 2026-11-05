@@ -8,7 +8,7 @@ Flux AMF de info-financiere.gouv.fr, importé dans `scripts/import.ts`.
 - **Décalage horaire :** les dates du 26 au 30/10/2026 sont 1 h trop tôt et ne sont pas corrigées.
 - **Valeurs factices :** l'ISIN `999999999999` et le ticker `99999999` signifient « absent ».
 - **Format variable :** `informationdeposee_inf_stp_inf` contient une chaîne simple pour un code et une chaîne JSON pour plusieurs.
-- **CAC 40 incomplet :** `cac40` vide signifie « inconnu », pas « hors CAC 40 ».
+- **CAC 40 périmé :** le champ `cac40` marque encore Alstom et Vivendi, sortis en 2024, et pas Hermès ou Société Générale. L'application utilise la composition réelle par ISIN (`lib/cac40.ts`).
 - **LEI manquant :** sur certaines lignes, la société est identifiée par l'ISIN, puis par son nom.
 - **Aucun lien FR/EN :** `group_id` est reconstruit à partir de la société, du `type_code` et de l'écart de temps.
 - **Écart FR/EN variable :** les deux versions sont souvent simultanées, mais l'écart dépasse parfois 2 h, d'où la fenêtre de 3 h.
@@ -19,6 +19,29 @@ Flux AMF de info-financiere.gouv.fr, importé dans `scripts/import.ts`.
 - **Dépôts en double :** un même document peut exister sous deux `id` (Kaufman & Broad, Streamwide), ils partagent donc le même `group_id` si leurs titres et leurs heures sont proches, sans contrôle du contenu.
 - **Langue déclarée peu fiable :** une « version EN » peut être le même fichier que la version FR (Crossject, ZCCM).
 - **Fichiers non PDF :** `url_de_recuperation` peut pointer vers un `.docx` (Arkéa).
+
+## Sélection des publications
+
+Une annonce mérite un article si c'est un événement, si elle compte pour un lecteur et si son document est exploitable. La logique est dans `lib/selection.ts`, testée par `npm test`.
+
+1. **Exclure la routine :** par code (droits de vote, rachats, rapports, franchissements de seuil…), par titre car le `type_code` se trompe, et par date si l'annonce est déposée plus de 7 jours après sa diffusion.
+2. **Lire le début du PDF** quand le titre est générique : TotalEnergies y cache son T3, Advicenne sa sauvegarde.
+3. **Noter sur 100 :** événement (`crise` 50, `offre_ma` 45, `capital` 35, `resultats` et `clinique` 30, `alerte` 25, `gouvernance` et `contrat` 20, `dette` 15, `autre` 5) + audience (CAC 40 25, valeur moyenne 10, petite valeur 0) + signaux du titre (objectifs modifiés 15 ou ton marqué 5, montant de 100 M€ ou plus 10).
+4. **Écarter les documents illisibles :** les chiffres d'une brève doivent pouvoir être vérifiés.
+5. **Varier :** à partir de 45 points, une annonce mérite un article. « À la une » garde les 5 meilleures, une par société et deux par famille.
+
+La note et ses raisons sont affichées dans la liste. Le critère est déterministe : le même flux donne la même sélection, et chaque place s'explique ligne par ligne.
+
+Limites : les mots-clés peuvent se tromper de famille, les annonces en anglais seul sont mal classées, et sans consensus ni cours de bourse la surprise reste invisible.
+
+## Mettre à jour les données
+
+Après avoir appliqué `supabase/schema.sql` :
+
+```bash
+npm run import   # publications de l'API info-financière
+npm run extract  # texte des PDF utiles à la sélection
+```
 
 ## Getting Started
 

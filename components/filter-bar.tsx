@@ -97,6 +97,20 @@ export function FilterBar({
           />
         </div>
         <div className="flex items-center justify-between gap-4 text-[13px] sm:col-span-2 lg:col-span-1 lg:justify-end">
+          <label className="flex items-center gap-1.5 whitespace-nowrap text-muted hover:text-foreground">
+            <input
+              type="checkbox"
+              className="accent-(--accent)"
+              checked={Boolean(optimistic.worth)}
+              onChange={(event) =>
+                update({
+                  ...optimistic,
+                  worth: event.target.checked ? "1" : undefined,
+                })
+              }
+            />
+            Mérite un article
+          </label>
           {hasFilters(optimistic) && (
             <button
               type="button"

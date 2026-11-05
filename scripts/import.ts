@@ -1,6 +1,7 @@
 // importer les publications de info financiere
 
 import { createClient } from "@supabase/supabase-js";
+import { isGenericTitle, normalize } from "@/lib/text";
 
 const API_URL =
   "https://www.info-financiere.gouv.fr/api/explore/v2.1/catalog/datasets/flux-amf-new-prod/exports/json";
@@ -15,9 +16,6 @@ const MAX_DUPLICATE_GAP_MS = 5 * 60 * 1000;
 const MIN_DUPLICATE_SIMILARITY = 0.7;
 const LANGS: Record<string, string> = { Français: "fr", Anglais: "en" };
 
-// Ces titres décrivent une catégorie, pas le document : ils ne prouvent aucun doublon.
-const GENERIC_TITLE =
-  /^(informations privilegiees|inside information|information financiere trimestrielle|quarterly financial|total du nombre|total number|acquisition ou cession|acquisition or disposal|rapports financiers et d'audit|half yearly|modalites de mise a disposition|terms of availability|franchissement|declaration d'intention)/;
 const MONTH =
   /^(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|january|february|march|april|may|june|july|august|september|october|november|december)$/;
 
@@ -159,13 +157,6 @@ function groupTranslations(publications: Publication[]): void {
   }
 }
 
-function normalize(text: string | null): string {
-  return (text ?? "")
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
-}
-
 // Sans le nom de la société : certains dépôts le mettent en tête du titre, d'autres non.
 function titleWords(publication: Publication): string[] {
   let title = normalize(publication.title);
@@ -190,13 +181,13 @@ function titleMarkers(words: string[]): string {
     .join(" ");
 }
 
-function isGenericTitle(publication: Publication): boolean {
-  return GENERIC_TITLE.test(normalize(publication.title));
-}
-
 function isDuplicate(a: Publication, b: Publication): boolean {
   const gap = Math.abs(Date.parse(a.published_at) - Date.parse(b.published_at));
-  if (gap > MAX_DUPLICATE_GAP_MS || isGenericTitle(a) || isGenericTitle(b)) {
+  if (
+    gap > MAX_DUPLICATE_GAP_MS ||
+    isGenericTitle(a.title) ||
+    isGenericTitle(b.title)
+  ) {
     return false;
   }
 
