@@ -4,9 +4,10 @@ import { evaluate, type Evaluation } from "./selection";
 
 const PAGE_SIZE = 1000; // Limite par défaut d'une réponse Supabase
 const COLUMNS =
-  "id, published_at, company, isin, ticker, title, type_code, subtype, lang, pdf_url, group_id, filed_at:raw->>uin_dat_amf, publication_texts(head, figure_count, error), briefs(title, body, figures)";
+  "id, published_at, company, isin, ticker, title, type_code, subtype, lang, pdf_url, group_id, filed_at:raw->>uin_dat_amf, publication_texts(text, head, figure_count, error), briefs(title, body, figures)";
 
 export type PublicationText = {
+  text: string | null;
   head: string | null;
   figure_count: number;
   error: string | null;

@@ -18,9 +18,7 @@ import { isGenericTitle } from "@/lib/text";
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 const PDF_SIGNATURE = "%PDF";
 
-type TextRow = PublicationText & { text: string | null };
-
-async function readDocument(bytes: Uint8Array): Promise<TextRow> {
+async function readDocument(bytes: Uint8Array): Promise<PublicationText> {
   const signature = new TextDecoder().decode(bytes.subarray(0, 4));
   if (signature !== PDF_SIGNATURE) {
     return { text: null, head: null, figure_count: 0, error: "pas un PDF" };

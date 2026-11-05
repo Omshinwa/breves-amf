@@ -5,16 +5,6 @@ Application web qui récupère les publications réglementées des sociétés co
 - **Application :** <https://breves-amf.vercel.app>
 - **Code :** <https://github.com/omshinwa/breves-amf>
 
-## État du rendu
-
-| # | Fonctionnalité | État |
-|---|---|---|
-| 1 | Récupérer les publications | Fait : 696 lignes du 28/10 au 04/11/2026 |
-| 2 | Stocker et filtrer | Fait : société, type d'information, date, et case « Mérite un article » |
-| 3 | Sélectionner automatiquement | Fait : 45 annonces au-dessus du seuil, 5 retenues |
-| 4 | Générer les brèves | Fait : 5 brèves de 130 à 145 mots, dont 3 retouchées à la main |
-| 5 | Vérifier les chiffres | **Partiel :** contrôle fait à la main, pas intégré à l'application (voir [Contrôle des chiffres](#contrôle-des-chiffres)) |
-
 ## Choix techniques
 
 | Choix | Raison |
@@ -26,6 +16,7 @@ Application web qui récupère les publications réglementées des sociétés co
 | **`unpdf` pour lire les PDF** | Extraction locale, sans LLM. Les PDF ne sont pas conservés, leur texte l'est : une brève reste vérifiable si le document disparaît |
 | **Score à règles plutôt que classement par LLM** | Reproductible, testable, explicable ligne par ligne, et sans lire tous les PDF |
 | **Note calculée à la volée** | Tant que les règles évoluent, aucune note stockée ne risque d'être périmée |
+| **Titre du PDF extrait par règles, à la volée** | Un titre générique est remplacé par celui du document : 41 trouvés sur 44, sinon le titre générique reste. Même raison que pour la note, au prix d'1,3 Mo de texte lu côté serveur et mis en cache. Une colonne dédiée deviendra préférable si le volume grandit |
 | **Claude Haiku 5.5** | J'ai commencé avec Opus 5.5, puis choisi un modèle économique : résumer un document fourni ne justifie pas le surcoût. Aucun benchmark sur le français : je l'ai jugé en relisant les brèves |
 | **Sortie structurée validée par Zod** | Le format est garanti. Le code compte les mots et renvoie l'écart au modèle, 3 essais au maximum. Le lien source vient de la base : le modèle ne peut pas l'inventer |
 
@@ -34,6 +25,7 @@ L'import lit `exports/json` en v2.1, alors que data.gouv ne documente que la v2.
 Correction:
 Claude Haiku 5.5: Je sais que deepseek a du mal parfois avec le texte français.
 
+Dans la liste, les annonces au-dessus du seuil ont un fond jaune pâle. Celles qui ont une brève ont un fond plus soutenu et s'ouvrent au clic. « À la une » les fait défiler une par une. La note reste interne : elle n'apporte rien au lecteur.
 
 ## Structure des données
 
@@ -46,22 +38,33 @@ J'ai d'abord décrit chaque champ à partir du schéma officiel, puis comparé c
 
 ### Difficultés rencontrées
 
-Le jeu de données 
-| Sujet | Problème | Traitement |
-|---|---|---|
-| Dates | `uin_dat_mar` peut valoir 8888, 9999 ou une mauvaise année | Au-delà de 300 jours d'écart, retour à `uin_dat_amf` |
-| Dates | Du 26 au 30/10/2026, les heures semblent 1 h trop tôt. C'est une déduction à partir des pics de publication | Non corrigé, `raw` garde l'original |
-| Identifiants | ISIN `999999999999` et ticker `99999999` signifient « absent » | Convertis en `null` |
-| Identifiants | LEI manquant sur certaines lignes | Société identifiée par le LEI, sinon l'ISIN, sinon le nom |
-| Types | `informationdeposee_inf_stp_inf` contient une chaîne simple pour un code, du JSON pour plusieurs | Normalisé en tableau |
-| Types | Le `type_code` se trompe : `001006` contient aussi des droits de vote et des rachats d'actions | Le titre peut contredire le code |
+#### Traiter le jeu de données
+
+Le jeu de données a besoin d'une passe de nettoyage. Exemple:
+
+* `uin_dat_mar` peut valoir 8888, 9999 ou une mauvaise année
+* *ISIN `999999999999` et ticker `99999999` signifient « absent », convertis en `null`
+* LEI manquant sur certaines lignes, Société identifiée par le LEI, fallback to l'ISIN, sinon le nom.
+* Le décalage horaire est appliquée 1 heure trop tard
+
+
+Le titre peut contredire le code.
+
+Type_code trompeur : `001006` contient aussi des droits de vote et des rachats d'actions.
+
 | Titres | « Informations privilégiées / Autres communiqués » ne décrit pas le contenu | Lecture du début du PDF |
+
 | CAC 40 | Le champ `cac40` marque encore Alstom et Vivendi, et pas Hermès ou Société Générale | Composition réelle par ISIN (`lib/cac40.ts`) |
+
 | FR/EN | Aucun lien entre versions, et un écart qui dépasse parfois 2 h | Même société, même type, moins de 3 h d'écart. Sur 6 mois, cette fenêtre ajoute 21 paires, dont une fausse (Segro) |
+
+Il existe des publications en double. Ou la même mais en français et anglais.
+
 | FR/EN | Une « version EN » peut être le même fichier que la version FR (Crossject, ZCCM) | Non traité |
 | Doublons | Un même document peut avoir deux `id` (Kaufman & Broad, Streamwide) | Regroupés si les titres et les heures sont proches, sans comparer le contenu |
 | Doublons | Deux documents sans rapport peuvent partager société, type et heure (Advicenne) | Le tri par `id` les départage, sans garantie |
 | Documents | `url_de_recuperation` peut pointer vers un `.docx` (Arkéa), certains PDF sont illisibles (Rémy Cointreau) | Détectés à l'extraction, écartés de la sélection |
+
 
 ## Critère de sélection
 
@@ -76,53 +79,34 @@ Une annonce mérite un article si c'est un **événement**, si elle **compte pou
 4. **Écarter les documents illisibles :** leurs chiffres ne seraient pas vérifiables.
 5. **Varier :** à partir de 45 points, une annonce mérite un article. `npm run briefs` traite les 5 meilleures, avec 1 annonce par société et 2 par famille au maximum.
 
-Les franchissements de seuil sont exclus alors que le sujet les cite : l'avis arrive parfois plusieurs semaines après les faits (Ubisoft : franchissement le 02/10, flux le 03/11). Les rapports le sont aussi, car le communiqué de résultats a déjà porté la nouvelle.
-
-**Résultat sur la période :** 451 annonces → 224 candidates → 45 au-dessus du seuil → 5 retenues.
-
-| Note | Détail | Société | Sujet |
-|---|---|---|---|
-| 75 | 50 + 25 | Bouygues | Dépréciation de sa participation dans TF1 |
-| 70 | 30 + 25 + 15 | Sanofi | T3 et perspectives 2026 relevées |
-| 70 | 30 + 25 + 15 | Dassault Systèmes | T3 et objectifs 2026 relevés |
-| 70 | 45 + 25 | Publicis | Acquisition de LiveRamp finalisée |
-| 60 | 50 + 10 | ABEO | Chiffre d'affaires en repli organique et plan d'optimisation |
-
-J'ai aussi essayé les règles sur deux semaines plus calmes : du 07 au 11/09 et du 08 au 12/06, avec 12 annonces au-dessus du seuil à chaque fois. Le test de juin n'est pas totalement à l'aveugle : après l'avoir vu, j'ai corrigé un bug et assoupli un contrôle. Les poids restent un jugement éditorial, sans vérité de référence.
-
 **Limites :** les mots-clés peuvent se tromper de famille (l'achat de 376 bitcoins par Capital B passe pour une acquisition), les annonces en anglais seul sont mal classées, et sans consensus ni cours de bourse la surprise reste invisible.
-
-Dans la liste, les annonces au-dessus du seuil ont un fond jaune pâle. Celles qui ont une brève ont un fond plus soutenu et s'ouvrent au clic. « À la une » les fait défiler une par une. La note reste interne : elle n'apporte rien au lecteur.
 
 ## Contrôle des chiffres
 
-**Ce contrôle n'est pas intégré à l'application.** Aucun code du dépôt ne compare une brève à son document, et le site n'affiche aucun signalement. Les fonctionnalités 1 à 4 passaient avant, comme le demande le sujet.
+**Ce contrôle n'est pas intégré à l'application.** Aucun code du dépôt ne compare une brève à son document. Faute de temps.
 
 ### Ce qui protège les chiffres aujourd'hui
 
-- **Document lisible obligatoire :** une annonce sans texte exploitable n'a pas de brève, et sa place va à la suivante.
+- **Document lisible obligatoire :** une annonce sans texte exploitable n'a pas de brève.
 - **Consignes du prompt :** reprendre chaque chiffre tel quel, ne rien calculer ni arrondir, écarter un chiffre dont la colonne est incertaine.
 - **Contrôle ponctuel, par un script hors du dépôt :** il extrait les nombres du titre, du corps et des chiffres clés, puis les cherche dans `publication_texts.text`. Sur les 5 brèves actuelles, les **67 nombres distincts sont retrouvés**.
-- **Relecture contre le document, avec Claude Code :** le contexte des chiffres principaux a été vérifié, pas celui de chaque nombre. C'est cette relecture qui a trouvé l'erreur décrite plus bas.
 
 ### Comment je l'aurais fait
 
-**Principalement du parsing automatique, sans LLM.** Faire vérifier un LLM par un autre LLM donnerait un verdict variable d'un lancement à l'autre, qui pourrait lui-même être faux. Le code, lui, est reproductible, gratuit, testable, et il peut montrer où chaque chiffre a été trouvé.
+**Principalement du parsing automatique, sans LLM.** Faire vérifier un LLM par un autre LLM donnerait un verdict variable d'un lancement à l'autre, qui pourrait lui-même être faux. Le code, lui, est reproductible, rapide, gratuit, testable.
 
 Le contrôle tiendrait dans `lib/verify.ts`, une fonction pure testée comme la sélection :
 
 1. **Extraire** par expressions régulières les chiffres du titre, du corps et des chiffres clés : valeur, unité et signe.
-2. **Normaliser** la brève et le document de la même façon : espaces insécables, virgule ou point décimal, unités. « 1,2 milliard » et « 1.2 billion » deviennent ainsi la même valeur.
+2. **Normaliser** la brève et le document de la même façon : espaces, virgule ou point décimal, unités. « 1,2 milliard » et « 1.2 billion » deviennent la même valeur.
 3. **Chercher** chaque valeur dans `publication_texts.text`, sans qu'elle soit collée à un autre chiffre : le « 5 » de « 5 % » ne doit pas se retrouver dans « 2025 ».
-4. **Donner un statut** à chaque chiffre : `retrouvé`, `non retrouvé`, ou `non vérifiable` si le texte manque. Le statut et le passage trouvé seraient enregistrés dans `briefs.figures`.
-5. **Corriger :** un chiffre `non retrouvé` serait renvoyé au modèle, comme un écart de longueur aujourd'hui. S'il persiste, la brève resterait publiée avec un avertissement.
-6. **Afficher** le statut à côté de chaque chiffre, pour que le lecteur voie ce qui n'a pas pu être vérifié.
+4. **Donner un statut** à chaque chiffre : `retrouvé`, `non retrouvé`, ou `non vérifiable` si le texte manque.
+5. **Corriger :** un chiffre `non retrouvé` serait renvoyé au modèle, (comme l'écart de longueur aujourd'hui). S'il persiste, la brève resterait publiée avec un avertissement?
 
-**Le LLM n'interviendrait qu'en option, pour le sens.** Le parsing ne voit pas qu'un chiffre est mal utilisé. Un second appel pourrait donc demander, pour chaque chiffre clé, le passage du document qui le justifie, et le code vérifierait que ce passage existe mot pour mot : le modèle propose, le code prouve. Ce niveau ne validerait rien, il ajouterait seulement un signal « à relire ».
 
 ### Ce que ce contrôle ne prouve pas
 
-Le parsing montre qu'un nombre existe dans le document, pas qu'il est bien utilisé : un « 5 % » peut venir d'un autre tableau, et une brève peut être exacte et trompeuse, comme celle d'ABEO. À l'inverse, une écriture imprévue ou un tableau mal extrait du PDF peut déclencher une fausse alerte. Le contrôle complète donc la relecture, il ne la remplace pas.
+Le parsing montre qu'un nombre existe dans le document, pas qu'il est bien utilisé : un « 5 % » peut venir d'un autre tableau.
 
 ## Prompts clés
 
@@ -131,16 +115,15 @@ Les deux premiers ont été donnés à Claude Code pendant le développement. Le
 **1. Comprendre les données avant de coder.**
 
 > crée moi un fichier flux-amf-new-prod.md
->
 > qui me décrie les différents fields que ça a et leur signification
 
-Ce document est devenu ma référence. C'est en le confrontant aux valeurs réelles que sont apparues les fausses dates, le champ `cac40` périmé et le format variable des codes.
+Ce document est devenu ma référence pour comprendre la structure de données qu'on importe. C'est en le confrontant aux valeurs réelles que sont apparues les fausses dates, et le format variable des codes.
 
 **2. Demander des options plutôt qu'une solution.**
 
 > think of a way we could select/rank publications. write me a euristic.md or something giving me propositions for your choices.
 
-Quatre approches ont été comparées, du simple filtre au classement par LLM, et le score a été essayé sur trois semaines réelles. J'ai pu choisir sur des résultats, puis écarter le classement par LLM, non reproductible.
+Quatre approches ont été comparées, du simple filtre au classement par LLM, et le score a été essayé sur trois semaines réelles. J'ai pu choisir sur des résultats, puis écarter le classement par LLM.
 
 **3. Le prompt de production des brèves** (extrait de `lib/brief.ts`).
 
@@ -154,7 +137,7 @@ Chaque règle répond à un risque précis. La règle sur la variation organique
 
 ## Erreurs de l'IA détectées
 
-### Une brève exacte mais trompeuse (ABEO)
+<!-- ### Une brève exacte mais trompeuse (ABEO)
 
 Dans sa première version, la brève annonçait la division Sport à +12,5 % et les prises de commandes à +6,3 %. Ces chiffres figurent bien dans le PDF, et le contrôle des nombres ne voyait rien. Mais le même tableau donne -3,1 % et -9,0 % à périmètre et change constants : le texte était plus flatteur que le document.
 
@@ -163,11 +146,11 @@ Dans sa première version, la brève annonçait la division Sport à +12,5 % et 
 - **Effet de bord :** la régénération a introduit deux défauts. Le « premier AI growth engine » de Publicis n'était plus attribué au groupe, et le plan d'optimisation d'ABEO avait disparu. Un autre défaut restait chez Dassault Systèmes : un « Il » ambigu et une croissance du BNPA sans sa base.
 - **Décision :** régénérer pouvait casser autre chose, j'ai donc corrigé le corps de ces 3 brèves directement dans Supabase. Leur champ `model` indique toujours `claude-haiku-5-5`, et `--force` écraserait ces corrections.
 
-Leçon : un chiffre présent dans le document n'est pas forcément un chiffre fidèle, et chaque régénération doit être relue.
+Leçon : un chiffre présent dans le document n'est pas forcément un chiffre fidèle, et chaque régénération doit être relue. -->
 
-### Une version d'API choisie sans le dire
+### Une version d'API choisie
 
-Claude Code m'a orienté vers la v2.1 de l'API alors que data.gouv ne documente que la v2.0. Je l'ai remarqué en comparant avec la fiche du sujet. La vérification a montré que les deux versions renvoient les mêmes données : 539 861 lignes des deux côtés. L'erreur venait du choix non signalé, pas des données.
+Claude Code m'a orienté vers la v2.1 de l'API alors que data.gouv ne documente que la v2.0. Je l'ai remarqué en comparant avec la fiche du sujet. La vérification a montré que les deux versions renvoient les mêmes données : 539 861 lignes des deux côtés. 
 
 ## Améliorations
 

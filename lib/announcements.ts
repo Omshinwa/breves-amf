@@ -10,6 +10,7 @@ import {
   type PublicationRow,
 } from "./publications";
 import type { Evaluation } from "./selection";
+import { documentTitle, isGenericTitle } from "./text";
 
 export type AnnouncementDocument = { lang: string; url: string };
 
@@ -39,6 +40,14 @@ export function hasBrief(
   return announcement.brief !== null;
 }
 
+// Un titre générique décrit une catégorie : celui du document dit de quoi il s'agit.
+function displayTitle({ title, publication_texts }: PublicationRow): string {
+  const fromDocument = isGenericTitle(title)
+    ? documentTitle(publication_texts?.text ?? null)
+    : null;
+  return fromDocument ?? title ?? "Sans titre";
+}
+
 // Une annonce = un group_id. La ligne dont l'id vaut group_id est la version
 // française, ou la seule version disponible : c'est elle qu'on affiche.
 function toAnnouncements(rows: PublicationRow[]): Announcement[] {
@@ -58,7 +67,7 @@ function toAnnouncements(rows: PublicationRow[]): Announcement[] {
       isin: row.isin,
       isCac40: isCac40(row.isin),
       isInsideInformation: row.subtype === "Informations privilégiées",
-      title: row.title ?? "Sans titre",
+      title: displayTitle(row),
       type: infoTypeOf(row.type_code),
       documents: [row, ...versions.get(row.id)!.filter((v) => v !== row)]
         .filter((version) => version.pdf_url)
