@@ -5,15 +5,20 @@ import { useState, type ReactNode } from "react";
 export type Slide = {
   id: string;
   label: string;
-  seconds: number;
-  content: ReactNode;
+  title: string;
+  excerpt: string;
+  article: ReactNode;
 };
+
+// Un titre et deux lignes de brève se lisent en 12 secondes environ.
+const SLIDE_SECONDS = 12;
 
 // La fin de l'animation de la barre fait défiler : le CSS seul gère la pause au
 // survol ou au focus, et l'arrêt si l'utilisateur préfère moins d'animations.
 export function SelectionRotator({ slides }: { slides: Slide[] }) {
   const [current, setCurrent] = useState(0);
   const [rotating, setRotating] = useState(slides.length > 1);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="rotator">
@@ -21,7 +26,7 @@ export function SelectionRotator({ slides }: { slides: Slide[] }) {
         <h2 id="selection" className="text-xs font-semibold">
           À la une
         </h2>
-        {slides.map(({ id, label, seconds }, index) => {
+        {slides.map(({ id, label }, index) => {
           const active = index === current;
           return (
             <button
@@ -43,7 +48,9 @@ export function SelectionRotator({ slides }: { slides: Slide[] }) {
                     rotating ? "rotator-progress" : ""
                   }`}
                   style={
-                    rotating ? { animationDuration: `${seconds}s` } : undefined
+                    rotating
+                      ? { animationDuration: `${SLIDE_SECONDS}s` }
+                      : undefined
                   }
                   onAnimationEnd={() =>
                     setCurrent((index + 1) % slides.length)
@@ -53,18 +60,46 @@ export function SelectionRotator({ slides }: { slides: Slide[] }) {
             </button>
           );
         })}
+        {expanded && (
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="ml-auto cursor-pointer text-xs text-muted underline underline-offset-2 hover:text-foreground"
+          >
+            Réduire
+          </button>
+        )}
       </div>
       {/* Empilées dans la même cellule : la plus haute fixe la hauteur, la liste
           en dessous ne saute pas à chaque défilement. */}
       <div className="mt-1.5 grid">
-        {slides.map(({ id, content }, index) => (
+        {slides.map(({ article, excerpt, id, title }, index) => (
           <div
             key={id}
             className={`min-w-0 [grid-area:1/1] ${
               index === current ? "rotator-slide" : "invisible"
             }`}
           >
-            {content}
+            {expanded ? (
+              article
+            ) : (
+              <button
+                type="button"
+                aria-expanded={false}
+                onClick={() => {
+                  setExpanded(true);
+                  setRotating(false);
+                }}
+                className="group/slide block w-full max-w-3xl cursor-pointer text-left"
+              >
+                <span className="block truncate text-sm font-medium group-hover/slide:underline">
+                  {title}
+                </span>
+                <span className="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted">
+                  {excerpt}
+                </span>
+              </button>
+            )}
           </div>
         ))}
       </div>

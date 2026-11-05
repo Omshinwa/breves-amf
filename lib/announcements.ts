@@ -31,6 +31,14 @@ export type Announcement = {
   brief: Brief | null;
 };
 
+export type BriefedAnnouncement = Announcement & { brief: Brief };
+
+export function hasBrief(
+  announcement: Announcement,
+): announcement is BriefedAnnouncement {
+  return announcement.brief !== null;
+}
+
 // Une annonce = un group_id. La ligne dont l'id vaut group_id est la version
 // française, ou la seule version disponible : c'est elle qu'on affiche.
 function toAnnouncements(rows: PublicationRow[]): Announcement[] {

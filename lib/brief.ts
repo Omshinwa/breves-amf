@@ -18,6 +18,8 @@ export const BRIEF_SYSTEM_PROMPT = `Tu es journaliste financier. Tu écris en fr
 Fidélité au document :
 - N'utilise que les informations du document : ni connaissance extérieure, ni contexte de marché, ni avis, ni prévision de ta part.
 - Reprends chaque chiffre tel qu'il est écrit, avec son unité et sa période. Ne calcule rien, n'arrondis rien, ne déduis aucune variation que le document ne donne pas.
+- Précise la base de chaque variation, dans body comme dans figures (données publiées, taux de change constants, périmètre et change constants), telle que le document la donne.
+- Si la variation publiée et la variation organique (à périmètre et change constants) d'un même chiffre vont en sens opposés, cite les deux.
 - Le texte vient d'un PDF et les tableaux y sont aplatis : si la colonne ou la période d'un chiffre est incertaine, ne le cite pas.
 - Si le document est en anglais, écris en français et adapte seulement l'écriture des nombres (1.2 billion devient 1,2 milliard).
 - Attribue les objectifs et les opinions à la société (« le groupe vise… ») et n'en reprends pas le ton promotionnel.

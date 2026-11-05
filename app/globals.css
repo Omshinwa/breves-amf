@@ -9,6 +9,7 @@
   --line: #e4e5e7;
   --accent: #b3540b;
   --highlight: #fdf3e3;
+  --worthy: #fefbe8;
   --filter-bar-height: 3.5625rem;
   --sticky-offset: 5.3125rem;
 }
@@ -21,6 +22,7 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-highlight: var(--highlight);
+  --color-worthy: var(--worthy);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -34,6 +36,7 @@
     --line: #272b33;
     --accent: #ffa02e;
     --highlight: #2a1f10;
+    --worthy: #1b1a0f;
   }
 }
 

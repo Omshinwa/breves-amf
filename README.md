@@ -28,9 +28,9 @@ Une annonce mérite un article si c'est un événement, si elle compte pour un l
 2. **Lire le début du PDF** quand le titre est générique : TotalEnergies y cache son T3, Advicenne sa sauvegarde.
 3. **Noter sur 100 :** événement (`crise` 50, `offre_ma` 45, `capital` 35, `resultats` et `clinique` 30, `alerte` 25, `gouvernance` et `contrat` 20, `dette` 15, `autre` 5) + audience (CAC 40 25, valeur moyenne 10, petite valeur 0) + signaux du titre (objectifs modifiés 15 ou ton marqué 5, montant de 100 M€ ou plus 10).
 4. **Écarter les documents illisibles :** les chiffres d'une brève doivent pouvoir être vérifiés.
-5. **Varier :** à partir de 45 points, une annonce mérite un article. « À la une » garde les 5 meilleures, une par société et deux par famille.
+5. **Varier :** à partir de 45 points, une annonce mérite un article. `npm run briefs` rédige la brève des 5 meilleures, une par société et deux par famille, et « À la une » applique la même règle aux annonces qui ont déjà une brève.
 
-Les annonces retenues ont un fond coloré dans la liste, et « À la une » les fait défiler une par une. La note et ses raisons restent internes : elles ne sont pas affichées sur le site. Le critère est déterministe : le même flux donne la même sélection, et chaque place s'explique ligne par ligne.
+Dans la liste, les annonces retenues ont un fond jaune pâle. Celles qui ont une brève ont un fond plus soutenu et s'ouvrent au clic. « À la une » les fait défiler une par une avec le titre et le début de la brève, et le clic affiche la brève complète. La note et ses raisons restent internes : elles ne sont pas affichées sur le site. Le critère est déterministe : le même flux donne la même sélection, et chaque place s'explique ligne par ligne.
 
 Limites : les mots-clés peuvent se tromper de famille, les annonces en anglais seul sont mal classées, et sans consensus ni cours de bourse la surprise reste invisible.
 

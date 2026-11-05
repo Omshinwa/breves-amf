@@ -4,7 +4,7 @@ import { ColumnHeadings } from "@/components/column-headings";
 import { ExplorerSkeleton } from "@/components/explorer-skeleton";
 import { FilterBar } from "@/components/filter-bar";
 import { SelectionPanel } from "@/components/selection-panel";
-import { getAnnouncements } from "@/lib/announcements";
+import { getAnnouncements, hasBrief } from "@/lib/announcements";
 import {
   applyFilters,
   companyFacets,
@@ -31,7 +31,7 @@ async function Explorer({ searchParams }: Pick<PageProps<"/">, "searchParams">) 
         count={visible.length}
       />
       <div className="transition-opacity group-has-data-pending:opacity-50">
-        <SelectionPanel announcements={selectTop(visible)} />
+        <SelectionPanel announcements={selectTop(visible.filter(hasBrief))} />
         <ColumnHeadings />
         <AnnouncementList announcements={visible} filters={filters} />
       </div>
@@ -71,31 +71,6 @@ export default function Home({ searchParams }: PageProps<"/">) {
       </main>
 
       <footer className="page space-y-1 py-5 text-[11px] leading-relaxed text-muted">
-        <p>
-          <span
-            className="mr-1.5 inline-block size-1.5 -translate-y-px rounded-full bg-accent"
-            aria-hidden="true"
-          />
-          Information privilégiée, déclarée comme telle par la société (règlement
-          MAR). Les versions française et anglaise d&apos;une annonce sont
-          regroupées sur une ligne.
-        </p>
-        <p>
-          <span
-            className="mr-1.5 inline-block size-2 -translate-y-px rounded-sm border border-line bg-highlight"
-            aria-hidden="true"
-          />
-          Annonce qui mérite un article. À la une : les plus marquantes parmi
-          celles affichées.
-        </p>
-        <p>
-          Brèves rédigées par un LLM à partir du texte du document. Leurs
-          chiffres ne sont pas encore contrôlés : le document source fait foi.
-        </p>
-        <p>
-          Heures de Paris. Du 26 au 30/10/2026, les heures de la source sont
-          1 h trop tôt et ne sont pas corrigées.
-        </p>
       </footer>
     </>
   );

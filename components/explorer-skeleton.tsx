@@ -12,7 +12,7 @@ export function ExplorerSkeleton() {
           <div className="field sm:col-span-2 lg:col-span-1 lg:w-[20.5rem]" />
         </div>
       </div>
-      <div className="h-24 border-b border-line bg-surface" />
+      <div className="h-27 border-b border-line bg-surface" />
       <ColumnHeadings />
       <div className="animate-pulse">
         {ROWS.map((row) => (

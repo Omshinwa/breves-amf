@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BriefArticle } from "@/components/brief-article";
 import type { Announcement, AnnouncementDocument } from "@/lib/announcements";
 import { formatDay, formatTime } from "@/lib/dates";
 import { filterHref, type Filters } from "@/lib/filters";
@@ -23,6 +24,12 @@ function DocumentLink({ lang, url }: AnnouncementDocument) {
   );
 }
 
+function rowBackground({ brief, evaluation }: Announcement): string {
+  if (brief) return "bg-highlight";
+  if (evaluation.score >= WORTH_ARTICLE_SCORE) return "bg-worthy";
+  return "hover:bg-surface";
+}
+
 function AnnouncementRow({
   announcement,
   filters,
@@ -30,75 +37,112 @@ function AnnouncementRow({
   announcement: Announcement;
   filters: Filters;
 }) {
-  const { company, documents, evaluation, publishedAt, ticker, title, type } =
+  const { brief, company, documents, publishedAt, ticker, title, type } =
     announcement;
   const typeLabel = infoTypeLabel(type);
+  const titleClass =
+    "min-w-0 text-sm leading-snug font-medium [overflow-wrap:anywhere] [grid-area:title]";
 
-  return (
-    <li
-      className={`border-b border-line/70 transition-colors ${
-        evaluation.score >= WORTH_ARTICLE_SCORE
-          ? "bg-highlight"
-          : "hover:bg-surface"
-      }`}
-    >
-      <div className="page publication-row gap-y-1 py-2 lg:items-baseline">
-        <time
-          dateTime={publishedAt}
-          className="[grid-area:time] font-mono text-xs text-muted tabular-nums"
+  const row = (
+    <div className="page publication-row gap-y-1 py-2 lg:items-baseline">
+      <time
+        dateTime={publishedAt}
+        className="[grid-area:time] font-mono text-xs text-muted tabular-nums"
+      >
+        {formatTime(publishedAt)}
+      </time>
+      <span className="[grid-area:ticker] truncate font-mono text-xs font-medium">
+        {ticker ?? "—"}
+      </span>
+      <div className="flex min-w-0 items-baseline gap-1.5 [grid-area:company]">
+        <Link
+          href={filterHref({ ...filters, company })}
+          title={company}
+          className="truncate text-xs text-muted hover:text-foreground hover:underline"
         >
-          {formatTime(publishedAt)}
-        </time>
-        <span className="[grid-area:ticker] truncate font-mono text-xs font-medium">
-          {ticker ?? "—"}
-        </span>
-        <div className="flex min-w-0 items-baseline gap-1.5 [grid-area:company]">
-          <Link
-            href={filterHref({ ...filters, company })}
-            title={company}
-            className="truncate text-xs text-muted hover:text-foreground hover:underline"
-          >
-            {company}
-          </Link>
-          {announcement.isCac40 && (
-            <span className="shrink-0 font-mono text-[10px] text-accent">
-              CAC40
-            </span>
-          )}
-        </div>
+          {company}
+        </Link>
+        {announcement.isCac40 && (
+          <span className="shrink-0 font-mono text-[10px] text-accent">
+            CAC40
+          </span>
+        )}
+      </div>
+      {/* Avec une brève, le titre ouvre la ligne : la colonne occupe presque
+          toute sa largeur, un lien y prendrait tous les clics. */}
+      {brief ? (
+        <span className={titleClass}>{title}</span>
+      ) : (
         <a
           href={documents[0]?.url}
           target="_blank"
           rel="noreferrer"
-          className="min-w-0 text-sm leading-snug font-medium [overflow-wrap:anywhere] [grid-area:title] hover:underline"
+          className={`${titleClass} hover:underline`}
         >
           {title}
         </a>
-        <Link
-          href={filterHref({ ...filters, type })}
-          className="flex min-w-0 items-baseline gap-1.5 text-xs text-muted [grid-area:type] hover:text-foreground"
-        >
-          <span
-            title={
-              announcement.isInsideInformation
-                ? "Information privilégiée"
-                : undefined
-            }
-            className={`size-1.5 shrink-0 -translate-y-px rounded-full ${
-              announcement.isInsideInformation ? "bg-accent" : ""
-            }`}
-          />
-          {announcement.isInsideInformation && (
-            <span className="sr-only">Information privilégiée :</span>
-          )}
-          <span className="truncate">{typeLabel}</span>
-        </Link>
-        <div className="flex justify-end gap-1 [grid-area:docs] lg:justify-start">
-          {documents.map((document) => (
-            <DocumentLink key={document.url} {...document} />
-          ))}
-        </div>
+      )}
+      <Link
+        href={filterHref({ ...filters, type })}
+        className="flex min-w-0 items-baseline gap-1.5 text-xs text-muted [grid-area:type] hover:text-foreground"
+      >
+        <span
+          title={
+            announcement.isInsideInformation
+              ? "Information privilégiée"
+              : undefined
+          }
+          className={`size-1.5 shrink-0 -translate-y-px rounded-full ${
+            announcement.isInsideInformation ? "bg-accent" : ""
+          }`}
+        />
+        {announcement.isInsideInformation && (
+          <span className="sr-only">Information privilégiée :</span>
+        )}
+        <span className="truncate">{typeLabel}</span>
+      </Link>
+      <div className="flex justify-end gap-1 [grid-area:docs] lg:justify-start">
+        {documents.map((document) => (
+          <DocumentLink key={document.url} {...document} />
+        ))}
+        {brief && (
+          <svg
+            viewBox="0 0 12 12"
+            className="ml-auto size-3 self-center text-muted transition-transform group-open/row:rotate-180"
+            aria-hidden="true"
+          >
+            <path
+              d="M2.5 4.5L6 8l3.5-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
       </div>
+    </div>
+  );
+
+  return (
+    <li
+      className={`border-b border-line/70 transition-colors ${rowBackground(announcement)}`}
+    >
+      {brief ? (
+        <details className="group/row">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            {row}
+          </summary>
+          <div className="page publication-row pb-3">
+            <div className="[grid-area:title]">
+              <BriefArticle brief={brief} sourceUrl={documents[0]?.url} />
+            </div>
+          </div>
+        </details>
+      ) : (
+        row
+      )}
     </li>
   );
 }
