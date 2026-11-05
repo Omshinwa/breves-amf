@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { BriefCollapse } from "@/components/brief-collapse";
 
 export type Slide = {
   id: string;
@@ -81,7 +82,9 @@ export function SelectionRotator({ slides }: { slides: Slide[] }) {
             }`}
           >
             {expanded ? (
-              article
+              <BriefCollapse onCollapse={() => setExpanded(false)}>
+                {article}
+              </BriefCollapse>
             ) : (
               <button
                 type="button"

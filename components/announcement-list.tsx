@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BriefArticle } from "@/components/brief-article";
+import { BriefBody } from "@/components/brief-article";
+import { BriefCollapse } from "@/components/brief-collapse";
 import type { Announcement, AnnouncementDocument } from "@/lib/announcements";
 import { formatDay, formatTime } from "@/lib/dates";
 import { filterHref, type Filters } from "@/lib/filters";
@@ -44,21 +45,21 @@ function AnnouncementRow({
     "min-w-0 text-sm leading-snug font-medium [overflow-wrap:anywhere] [grid-area:title]";
 
   const row = (
-    <div className="page publication-row gap-y-1 py-2 lg:items-baseline">
+    <div className="page publication-row items-baseline gap-y-1 py-2">
       <time
         dateTime={publishedAt}
         className="[grid-area:time] font-mono text-xs text-muted tabular-nums"
       >
         {formatTime(publishedAt)}
       </time>
-      <span className="[grid-area:ticker] truncate font-mono text-xs font-medium">
+      <span className="[grid-area:ticker] truncate text-xs text-muted">
         {ticker ?? "—"}
       </span>
       <div className="flex min-w-0 items-baseline gap-1.5 [grid-area:company]">
         <Link
           href={filterHref({ ...filters, company })}
           title={company}
-          className="truncate text-xs text-muted hover:text-foreground hover:underline"
+          className="truncate text-sm font-medium hover:underline"
         >
           {company}
         </Link>
@@ -69,9 +70,13 @@ function AnnouncementRow({
         )}
       </div>
       {/* Avec une brève, le titre ouvre la ligne : la colonne occupe presque
-          toute sa largeur, un lien y prendrait tous les clics. */}
+          toute sa largeur, un lien y prendrait tous les clics. Ligne ouverte, le
+          titre de la brève remplace celui du dépôt, qu'il répète ou précise. */}
       {brief ? (
-        <span className={titleClass}>{title}</span>
+        <span className={titleClass}>
+          <span className="group-open/row:hidden">{title}</span>
+          <span className="hidden group-open/row:inline">{brief.title}</span>
+        </span>
       ) : (
         <a
           href={documents[0]?.url}
@@ -135,8 +140,10 @@ function AnnouncementRow({
             {row}
           </summary>
           <div className="page publication-row pb-3">
-            <div className="[grid-area:title]">
-              <BriefArticle brief={brief} sourceUrl={documents[0]?.url} />
+            <div className="max-w-3xl [grid-area:title]">
+              <BriefCollapse>
+                <BriefBody brief={brief} sourceUrl={documents[0]?.url} />
+              </BriefCollapse>
             </div>
           </div>
         </details>

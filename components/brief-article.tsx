@@ -1,22 +1,10 @@
 import type { Brief } from "@/lib/brief";
 
-export function BriefArticle({
-  brief,
-  sourceUrl,
-}: {
-  brief: Brief;
-  sourceUrl?: string;
-}) {
+type BriefProps = { brief: Brief; sourceUrl?: string };
+
+export function BriefBody({ brief, sourceUrl }: BriefProps) {
   return (
-    <div className="max-w-3xl">
-      <a
-        href={sourceUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="text-[15px] leading-snug font-medium [overflow-wrap:anywhere] hover:underline"
-      >
-        {brief.title}
-      </a>
+    <>
       <p className="mt-1.5 text-[13px] leading-relaxed whitespace-pre-line">
         {brief.body}
       </p>
@@ -40,6 +28,22 @@ export function BriefArticle({
           Document source
         </a>
       )}
+    </>
+  );
+}
+
+export function BriefArticle({ brief, sourceUrl }: BriefProps) {
+  return (
+    <div className="max-w-3xl">
+      <a
+        href={sourceUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="text-[15px] leading-snug font-medium [overflow-wrap:anywhere] hover:underline"
+      >
+        {brief.title}
+      </a>
+      <BriefBody brief={brief} sourceUrl={sourceUrl} />
     </div>
   );
 }
