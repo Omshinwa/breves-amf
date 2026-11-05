@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { AnnouncementList } from "@/components/announcement-list";
+import { ColumnHeadings } from "@/components/column-headings";
 import { ExplorerSkeleton } from "@/components/explorer-skeleton";
 import { FilterBar } from "@/components/filter-bar";
 import { SelectionPanel } from "@/components/selection-panel";
@@ -10,7 +11,7 @@ import {
   parseFilters,
   typeFacets,
 } from "@/lib/filters";
-import { selectTop, WORTH_ARTICLE_SCORE } from "@/lib/selection";
+import { selectTop } from "@/lib/selection";
 
 const SOURCE_URL = "https://www.info-financiere.gouv.fr";
 
@@ -31,6 +32,7 @@ async function Explorer({ searchParams }: Pick<PageProps<"/">, "searchParams">) 
       />
       <div className="transition-opacity group-has-data-pending:opacity-50">
         <SelectionPanel announcements={selectTop(visible)} />
+        <ColumnHeadings />
         <AnnouncementList announcements={visible} filters={filters} />
       </div>
     </div>
@@ -79,11 +81,12 @@ export default function Home({ searchParams }: PageProps<"/">) {
           regroupées sur une ligne.
         </p>
         <p>
-          Note sur 100 : gravité de l&apos;événement, taille de la société et
-          signaux du titre. Une annonce mérite un article à partir de{" "}
-          {WORTH_ARTICLE_SCORE} points, hors routine (droits de vote, rachats
-          d&apos;actions…). À la une : les 5 meilleures parmi celles affichées,
-          une par société et deux par famille d&apos;événement.
+          <span
+            className="mr-1.5 inline-block size-2 -translate-y-px rounded-sm border border-line bg-highlight"
+            aria-hidden="true"
+          />
+          Annonce qui mérite un article. À la une : les plus marquantes parmi
+          celles affichées.
         </p>
         <p>
           Brèves rédigées par un LLM à partir du texte du document. Leurs

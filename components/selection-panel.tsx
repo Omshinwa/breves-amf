@@ -1,6 +1,10 @@
-import { ScoreReasons } from "@/components/score-reasons";
+import { SelectionRotator } from "@/components/selection-rotator";
 import type { Announcement } from "@/lib/announcements";
 import type { Brief } from "@/lib/brief";
+
+// Une brève de 100 à 150 mots se lit en 40 secondes environ, un titre en 4.
+const BRIEF_SECONDS = 40;
+const TITLE_SECONDS = 4;
 
 function BriefContent({
   brief,
@@ -38,6 +42,22 @@ function BriefContent({
   );
 }
 
+function SelectionSlide({ brief, documents, title }: Announcement) {
+  return (
+    <div className="max-w-3xl">
+      <a
+        href={documents[0]?.url}
+        target="_blank"
+        rel="noreferrer"
+        className="text-[15px] leading-snug font-medium [overflow-wrap:anywhere] hover:underline"
+      >
+        {brief?.title ?? title}
+      </a>
+      {brief && <BriefContent brief={brief} sourceUrl={documents[0]?.url} />}
+    </div>
+  );
+}
+
 export function SelectionPanel({
   announcements,
 }: {
@@ -48,30 +68,15 @@ export function SelectionPanel({
   return (
     <section aria-labelledby="selection" className="border-b border-line bg-surface">
       <div className="page py-3">
-        <h2 id="selection" className="text-xs font-semibold">
-          À la une
-        </h2>
-        <ol className="mt-2 grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
-          {announcements.map(
-            ({ brief, company, documents, evaluation, id, title }) => (
-              <li key={id} className="min-w-0">
-                <p className="truncate text-xs text-muted">{company}</p>
-                <a
-                  href={documents[0]?.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm leading-snug font-medium [overflow-wrap:anywhere] hover:underline"
-                >
-                  {brief?.title ?? title}
-                </a>
-                <ScoreReasons evaluation={evaluation} />
-                {brief && (
-                  <BriefContent brief={brief} sourceUrl={documents[0]?.url} />
-                )}
-              </li>
-            ),
-          )}
-        </ol>
+        <SelectionRotator
+          key={announcements.map(({ id }) => id).join()}
+          slides={announcements.map((announcement) => ({
+            id: announcement.id,
+            label: announcement.company,
+            seconds: announcement.brief ? BRIEF_SECONDS : TITLE_SECONDS,
+            content: <SelectionSlide {...announcement} />,
+          }))}
+        />
       </div>
     </section>
   );

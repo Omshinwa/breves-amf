@@ -30,7 +30,7 @@ Une annonce mérite un article si c'est un événement, si elle compte pour un l
 4. **Écarter les documents illisibles :** les chiffres d'une brève doivent pouvoir être vérifiés.
 5. **Varier :** à partir de 45 points, une annonce mérite un article. « À la une » garde les 5 meilleures, une par société et deux par famille.
 
-La note et ses raisons sont affichées dans la liste. Le critère est déterministe : le même flux donne la même sélection, et chaque place s'explique ligne par ligne.
+Les annonces retenues ont un fond coloré dans la liste, et « À la une » les fait défiler une par une. La note et ses raisons restent internes : elles ne sont pas affichées sur le site. Le critère est déterministe : le même flux donne la même sélection, et chaque place s'explique ligne par ligne.
 
 Limites : les mots-clés peuvent se tromper de famille, les annonces en anglais seul sont mal classées, et sans consensus ni cours de bourse la surprise reste invisible.
 
@@ -42,6 +42,8 @@ Après avoir appliqué `supabase/schema.sql` :
 npm run import   # publications de l'API info-financière
 npm run extract  # texte des PDF utiles à la sélection
 ```
+
+`npm run extract` lit le PDF en entier, sans LLM, et enregistre le résultat dans la table `publication_texts` : le texte complet (`text`), ses 260 premiers caractères (`head`), le nombre de chiffres trouvés par expression régulière (`figure_count`) et le motif d'erreur éventuel (`error`). Les PDF eux-mêmes ne sont pas conservés.
 
 ## Getting Started
 

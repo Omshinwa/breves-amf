@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ScoreReasons } from "@/components/score-reasons";
 import type { Announcement, AnnouncementDocument } from "@/lib/announcements";
 import { formatDay, formatTime } from "@/lib/dates";
 import { filterHref, type Filters } from "@/lib/filters";
@@ -36,7 +35,13 @@ function AnnouncementRow({
   const typeLabel = infoTypeLabel(type);
 
   return (
-    <li className="border-b border-line/70 transition-colors hover:bg-surface">
+    <li
+      className={`border-b border-line/70 transition-colors ${
+        evaluation.score >= WORTH_ARTICLE_SCORE
+          ? "bg-highlight"
+          : "hover:bg-surface"
+      }`}
+    >
       <div className="page publication-row gap-y-1 py-2 lg:items-baseline">
         <time
           dateTime={publishedAt}
@@ -61,19 +66,14 @@ function AnnouncementRow({
             </span>
           )}
         </div>
-        <div className="min-w-0 [grid-area:title]">
-          <a
-            href={documents[0]?.url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm leading-snug font-medium [overflow-wrap:anywhere] hover:underline"
-          >
-            {title}
-          </a>
-          {evaluation.score >= WORTH_ARTICLE_SCORE && (
-            <ScoreReasons evaluation={evaluation} />
-          )}
-        </div>
+        <a
+          href={documents[0]?.url}
+          target="_blank"
+          rel="noreferrer"
+          className="min-w-0 text-sm leading-snug font-medium [overflow-wrap:anywhere] [grid-area:title] hover:underline"
+        >
+          {title}
+        </a>
         <Link
           href={filterHref({ ...filters, type })}
           className="flex min-w-0 items-baseline gap-1.5 text-xs text-muted [grid-area:type] hover:text-foreground"

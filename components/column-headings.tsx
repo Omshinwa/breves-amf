@@ -1,6 +1,9 @@
 export function ColumnHeadings() {
   return (
-    <div className="hidden border-t border-line lg:block" aria-hidden="true">
+    <div
+      className="z-10 hidden border-b border-line bg-background lg:sticky lg:top-(--filter-bar-height) lg:block"
+      aria-hidden="true"
+    >
       <div className="page publication-row py-1.5 font-mono text-[10px] tracking-wider text-muted uppercase">
         <span>Heure</span>
         <span>Ticker</span>

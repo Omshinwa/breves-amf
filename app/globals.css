@@ -8,6 +8,8 @@
   --muted: #5e6470;
   --line: #e4e5e7;
   --accent: #b3540b;
+  --highlight: #fdf3e3;
+  --filter-bar-height: 3.5625rem;
   --sticky-offset: 5.3125rem;
 }
 
@@ -18,6 +20,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-highlight: var(--highlight);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -30,6 +33,7 @@
     --muted: #979fac;
     --line: #272b33;
     --accent: #ffa02e;
+    --highlight: #2a1f10;
   }
 }
 
@@ -69,6 +73,40 @@ body {
 .field::placeholder {
   color: var(--muted);
   opacity: 1;
+}
+
+.rotator-progress {
+  transform-origin: left;
+  animation: rotator-progress linear;
+}
+
+.rotator:hover .rotator-progress,
+.rotator:focus-within .rotator-progress {
+  animation-play-state: paused;
+}
+
+.rotator-slide {
+  animation: rotator-slide 300ms ease-out;
+}
+
+@keyframes rotator-progress {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes rotator-slide {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotator-progress,
+  .rotator-slide {
+    animation: none;
+  }
 }
 
 .publication-row {

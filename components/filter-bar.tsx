@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useOptimistic, useTransition } from "react";
-import { ColumnHeadings } from "@/components/column-headings";
 import { Combobox } from "@/components/combobox";
 import { filterHref, hasFilters, type Facet, type Filters } from "@/lib/filters";
 
@@ -128,7 +127,6 @@ export function FilterBar({
           </p>
         </div>
       </div>
-      <ColumnHeadings />
     </div>
   );
 }

@@ -18,7 +18,7 @@ import {
 } from "@/lib/publications";
 import { selectTop } from "@/lib/selection";
 
-const MODEL = "claude-opus-5-5";
+const MODEL = "claude-haiku-5-5";
 const MAX_TOKENS = 16_000;
 const MAX_ATTEMPTS = 3;
 const FORCE = process.argv.includes("--force"); // Régénère aussi les brèves existantes
@@ -59,8 +59,6 @@ async function generate(
     const response = await client.beta.messages.parse({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       system: BRIEF_SYSTEM_PROMPT,
       messages,
       output_config: {
